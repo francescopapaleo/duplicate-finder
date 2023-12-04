@@ -55,3 +55,9 @@ python main.py list search_folder
 │   └── utils.py
 └── main.py
 ```
+
+## ToDo
+
+- [ ] Add delete functionality
+- [ ] Add tests
+- [ ] Ignore hidden files and folders

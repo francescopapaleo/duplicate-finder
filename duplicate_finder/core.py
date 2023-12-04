@@ -1,6 +1,7 @@
 # core.py
 
 import os
+import sys
 import hashlib
 import pickle
 import pandas as pd
@@ -52,19 +53,22 @@ def check_for_duplicates(paths, hash=hashlib.sha1):
             continue
 
         for filename in files_list:
-            try: 
+            try:
                 full_hash = get_hash(filename, first_chunk_only=False)
                 duplicate = hashes_full.get(full_hash)
                 if duplicate:
-                    print("Duplicate found: {} \n ---> {}".format(filename, duplicate))
+                    sys.stdout.write(
+                        "Duplicate found: {} \n ---> {}".format(filename, duplicate)
+                    )
                     duplicates_list.append(duplicate)
                 else:
                     hashes_full[full_hash] = filename
             except OSError:
                 continue
-        
-    with open('duplicates_list.pkl', 'wb') as f:
+
+    with open("duplicates_list.pkl", "wb") as f:
         pickle.dump(duplicates_list, f)
+
 
 def create_table(folder: str, ext: str = None, pre: bool = False) -> pd.DataFrame:
     """Create a Pandas dataframe with a column 'file' for the path to a file and a
@@ -75,14 +79,21 @@ def create_table(folder: str, ext: str = None, pre: bool = False) -> pd.DataFram
     if pre is True:
         input_files = preselect(input_files)
 
-    summary_df = pd.DataFrame(columns=['file', 'hash'])
+    summary_df = pd.DataFrame(columns=["file", "hash"])
 
-    summary_df['file'] = input_files
-    summary_df['hash'] = hashtable(input_files)
+    summary_df["file"] = input_files
+    summary_df["hash"] = hashtable(input_files)
 
     return summary_df
 
-def list_all_duplicates(folder: str, to_csv: bool = False, csv_path: str = './', ext: str = None, fastscan: bool = False) -> pd.DataFrame:
+
+def list_all_duplicates(
+    folder: str,
+    to_csv: bool = False,
+    csv_path: str = "./",
+    ext: str = None,
+    fastscan: bool = False,
+) -> pd.DataFrame:
     """Go through a folder and find all duplicate files.
     The returned dataframe contains all files, not only the duplicates.
     With the 'to_csv' parameter the results can also be saved in a .csv file.
@@ -90,8 +101,8 @@ def list_all_duplicates(folder: str, to_csv: bool = False, csv_path: str = './',
     To improve performance when handling large files the fastscan parameter
     can be set to True. In this case files are pre-selected based on their size."""
     duplicate_files = create_table(folder, ext, pre=fastscan)
-    duplicate_files = duplicate_files[duplicate_files['hash'].duplicated(keep=False)]
-    duplicate_files.sort_values(by='hash', inplace=True)
+    duplicate_files = duplicate_files[duplicate_files["hash"].duplicated(keep=False)]
+    duplicate_files.sort_values(by="hash", inplace=True)
 
     if to_csv is True:
         save_csv(csv_path, duplicate_files)
@@ -113,21 +124,28 @@ def find_duplicates(file: str, folder: str) -> pd.DataFrame:
     if len(file_hash) == 1:
         file_hash = file_hash[0]
 
-    return duplicate_files[duplicate_files['hash'] == file_hash]
+    return duplicate_files[duplicate_files["hash"] == file_hash]
 
 
-def compare_folders(reference_folder: str, compare_folder: str, to_csv: bool = False, csv_path: str = './', ext: str = None) -> pd.DataFrame:
+def compare_folders(
+    reference_folder: str,
+    compare_folder: str,
+    to_csv: bool = False,
+    csv_path: str = "./",
+    ext: str = None,
+) -> pd.DataFrame:
     """Directly compare two folders of interest and identify duplicates between them.
     With the 'to_csv' parameter the results can also be saved in a .csv file.
     The location of that .csv file can be specified by the 'csv_path' parameter.
-    Further the search can be limited to files with a specific extension via the 'ext' parameter."""
+    Further the search can be limited to files with a specific extension via the 'ext' parameter.
+    """
     df_reference = create_table(reference_folder, ext)
     df_compare = create_table(compare_folder, ext)
 
-    ind_duplicates = [x == df_reference['hash'] for x in df_compare['hash'].values]
+    ind_duplicates = [x == df_reference["hash"] for x in df_compare["hash"].values]
     duplicate_files = df_compare.iloc[ind_duplicates]
 
-    duplicate_files.drop_duplicates(subset='file', inplace=True)
+    duplicate_files.drop_duplicates(subset="file", inplace=True)
 
     if to_csv is True:
         save_csv(csv_path, duplicate_files)

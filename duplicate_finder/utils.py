@@ -3,8 +3,10 @@
 import os
 import hashlib
 import pandas as pd
+import sys
 
 from typing import List
+
 
 def chunk_reader(fobj, chunk_size=1024):
     """Generator that reads a file in chunks of bytes"""
@@ -27,24 +29,24 @@ def get_hash(filename, first_chunk_only=False, hash=hashlib.sha1):
         bytes: The file hash.
     """
     hashobj = hash()
-    
-    with open(filename, 'rb') as file_object:
+
+    with open(filename, "rb") as file_object:
         if first_chunk_only:
             hashobj.update(file_object.read(1024))
         else:
             for chunk in chunk_reader(file_object):
                 hashobj.update(chunk)
-    
+
     return hashobj.digest()
 
 
 def format_path(file: str) -> str:
     """Format a path according to the systems separator."""
-    return os.path.abspath([file.replace('/', os.path.sep)][0])
+    return os.path.abspath([file.replace("/", os.path.sep)][0])
 
 
 def filelist(filepath: str, ext: str = None) -> list:
-    """ Lists all files in a folder including sub-folders.
+    """Lists all files in a folder including sub-folders.
     If only files with a specific extension are of interest
     this can be specified by the 'ext' parameter."""
     file_list = []
@@ -59,7 +61,7 @@ def filelist(filepath: str, ext: str = None) -> list:
 
 def hashfile(file: str, block_size: int = 65536) -> str:
     """Generate the hash of any file according to the sha256 algorithm."""
-    with open(file, 'rb') as message:
+    with open(file, "rb") as message:
         m = hashlib.sha256()
         block = message.read(block_size)
         while len(block) > 0:
@@ -77,11 +79,11 @@ def hashtable(files: list) -> list:
 
     hash_identifier = []
     for file in files:
-        print(file, end='\r')
+        sys.stdout.write(file + "\r")
         try:  # Avoid crash in case a file name is too long
             hash_identifier.extend([hashfile(file)])
         except OSError:
-            hash_identifier.extend(['No hash could be generated'])
+            hash_identifier.extend(["No hash could be generated"])
 
     return hash_identifier
 
@@ -93,20 +95,22 @@ def preselect(input_files: list) -> list:
         if os.path.isfile(file):
             checked_files.append(file)
 
-    summary_df = pd.DataFrame(columns=['file', 'size'])
+    summary_df = pd.DataFrame(columns=["file", "size"])
 
-    summary_df['file'] = checked_files
-    summary_df['size'] = [os.path.getsize(file) for file in checked_files]
+    summary_df["file"] = checked_files
+    summary_df["size"] = [os.path.getsize(file) for file in checked_files]
 
-    summary_df = summary_df[summary_df['size'].duplicated(keep=False)]
+    summary_df = summary_df[summary_df["size"].duplicated(keep=False)]
 
-    return summary_df['file'].tolist()
+    return summary_df["file"].tolist()
 
 
 def save_csv(path: str, df: pd.DataFrame) -> str:
     """Save a DataFrame to a csv file and returns the path of the saved file."""
-    if not path.endswith('.csv'):
-        path += '.csv'
+
+    if not path.endswith(".csv"):
+        path += ".csv"
+
     df.to_csv(path, index=False)
     return path
 
@@ -128,7 +132,8 @@ def delete_files(duplicate_files: List[str]):
             # If this hash is already known and the current file is not the one we stored, delete it
             try:
                 os.remove(file_path)
-                print(f'Deleted: {file_path}')
+                print(f"Deleted: {file_path}")
             except Exception as e:
-                print(f'Error occurred while deleting file {file_path}. Error: {str(e)}')
-
+                print(
+                    f"Error occurred while deleting file {file_path}. Error: {str(e)}"
+                )
